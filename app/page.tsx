@@ -13,7 +13,7 @@ import {
 export default function Home() {
   const [features, setFeatures] = useState(['', '', '', '']);
   const [prediction, setPrediction] = useState<number | null>(null);
-  const [metrics, setMetrics] = useState(null);
+  const [metrics, setMetrics] = useState<any>(null);
 
   const handleChange = (index: number, value: string) => {
     const newFeatures = [...features];
@@ -31,15 +31,11 @@ export default function Home() {
           body: JSON.stringify({ features: features.map(Number) }),
         }
       );
-      if (!res.ok) {
-        throw new Error(`Error: ${res.statusText}`);
-      }
       const data = await res.json();
       setPrediction(data.prediction);
-      fetchMetrics(); // Refresh metrics after prediction
-    } catch (error) {
-      console.error('Prediction error:', error);
-      setPrediction(null);
+      fetchMetrics(); // refresh metrics after prediction
+    } catch (err) {
+      console.error('Prediction failed:', err);
     }
   };
 
@@ -48,14 +44,10 @@ export default function Home() {
       const res = await fetch(
         'https://ml-api-fastapi-nwok.onrender.com/metrics'
       );
-      if (!res.ok) {
-        throw new Error(`Error: ${res.statusText}`);
-      }
       const data = await res.json();
       setMetrics(data);
-    } catch (error) {
-      console.error('Metrics fetch error:', error);
-      setMetrics(null);
+    } catch (err) {
+      console.error('Failed to fetch metrics:', err);
     }
   };
 
@@ -63,86 +55,80 @@ export default function Home() {
     fetchMetrics();
   }, []);
 
-  // Prepare chart data from prediction_distribution
   const chartData = metrics
-    ? Object.entries(metrics.prediction_distribution).map(
-        ([key, value]) => ({
-          name: key,
-          count: value,
-        })
-      )
+    ? Object.entries(metrics.prediction_distribution).map(([label, count]) => ({
+        name: label,
+        count,
+      }))
     : [];
 
   return (
-    <main style={{ padding: 40, maxWidth: 600, margin: 'auto' }}>
-      <h1>ML Prediction App</h1>
+    <main style={{ padding: 40, maxWidth: 700, margin: 'auto' }}>
+      <h1>🌼 ML Prediction App with Observability</h1>
 
-      {/* Feature inputs */}
-      {features.map((val, i) => (
-        <input
-          key={i}
-          type="number"
-          value={val}
-          onChange={(e) => handleChange(i, e.target.value)}
-          placeholder={`Feature ${i + 1}`}
-          style={{
-            margin: 5,
-            padding: 8,
-            width: '22%',
-            fontSize: 16,
-            boxSizing: 'border-box',
-          }}
-        />
-      ))}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 20 }}>
+        {features.map((val, i) => (
+          <input
+            key={i}
+            type="number"
+            placeholder={`Feature ${i + 1}`}
+            value={val}
+            onChange={(e) => handleChange(i, e.target.value)}
+            style={{
+              padding: 10,
+              fontSize: 16,
+              width: 100,
+            }}
+          />
+        ))}
+      </div>
 
-      <br />
-
-      {/* Predict button */}
       <button
         onClick={handlePredict}
         style={{
-          marginTop: 10,
+          marginTop: 20,
           padding: '10px 20px',
           fontSize: 16,
+          background: '#4f46e5',
+          color: 'white',
+          border: 'none',
+          borderRadius: 5,
           cursor: 'pointer',
         }}
       >
         Predict
       </button>
 
-      {/* Prediction result */}
       {prediction !== null && (
         <p style={{ marginTop: 20, fontSize: 18 }}>
           🔮 Prediction: <strong>{prediction}</strong>
         </p>
       )}
 
-      {/* Metrics charts & logs */}
       {metrics && (
         <>
-          <h2 style={{ marginTop: 40 }}>Prediction Distribution</h2>
+          <h2 style={{ marginTop: 40 }}>📊 Prediction Distribution</h2>
           <BarChart width={500} height={300} data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis allowDecimals={false} />
             <Tooltip />
-            <Bar dataKey="count" fill="#8884d8" />
+            <Bar dataKey="count" fill="#4f46e5" />
           </BarChart>
 
-          <h2 style={{ marginTop: 40 }}>Recent Predictions</h2>
+          <h2 style={{ marginTop: 40 }}>🧾 Recent Predictions</h2>
           <ul
             style={{
+              listStyle: 'none',
               maxHeight: 200,
               overflowY: 'auto',
-              padding: 0,
-              listStyle: 'none',
               border: '1px solid #ccc',
+              padding: 0,
               borderRadius: 5,
-              marginTop: 10,
             }}
           >
-            {metrics.log.length === 0 && <li>No recent predictions.</li>}
-            {metrics.log.map((entry, idx) => (
+            {metrics.log.length === 0 && <li style={{ padding: 10 }}>No logs.</li>}
+            {metrics.log.map((entry: any, idx: number) => (
               <li
                 key={idx}
                 style={{
@@ -151,8 +137,7 @@ export default function Home() {
                   fontSize: 14,
                 }}
               >
-                <strong>Time:</strong>{' '}
-                {new Date(entry.timestamp).toLocaleString()}
+                <strong>🕒</strong> {new Date(entry.timestamp).toLocaleString()}
                 <br />
                 <strong>Input:</strong> [{entry.input.join(', ')}]
                 <br />
